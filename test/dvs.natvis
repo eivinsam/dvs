@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="dvs::Space&lt;*&gt;::Vector" >
+    <DisplayString>{_values,[_space->_dim]na}</DisplayString>
+  </Type>
+  
+</AutoVisualizer>
