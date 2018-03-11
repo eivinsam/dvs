@@ -361,7 +361,7 @@ namespace dvs
 		S length;
 		Vector<S> direction;
 
-		Decomposition(Vector<S> a) : length(dvs::length(a)), direction(std::move(a)/length) { }
+		Decomposition(Vector<S> a) : direction(std::move(a)) { length = dvs::length(direction); direction /= length; }
 	};
 	template <class S> Decomposition<S> decompose(      Vector<S>&& a) { return { std::move(a) }; }
 	template <class S> Decomposition<S> decompose(const Vector<S>&  a) { return {           a  }; }
