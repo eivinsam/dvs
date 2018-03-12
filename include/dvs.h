@@ -8,12 +8,68 @@ namespace dvs
 {
 	template <class S>
 	class Space;
+
+	struct Indices
+	{
+		using value_type = int;
+		using size_type = int;
+
+		struct iterator
+		{
+			using iterator_category = std::forward_iterator_tag;
+			using difference_type = void;
+			using value_type = int;
+			using reference = const int&;
+			using pointer = const int*;
+
+			int i;
+			constexpr iterator(int i) : i(i) { }
+
+			constexpr iterator& operator++() { ++i; return *this; }
+
+			constexpr const int& operator*() const { return i; }
+			
+			constexpr bool operator==(const iterator& b) const { return i == b.i; }
+			constexpr bool operator!=(const iterator& b) const { return i != b.i; }
+		};
+
+		int dim;
+		constexpr Indices(int dim) : dim(dim) { }
+
+		constexpr int size() const { return dim; }
+
+		constexpr iterator begin() const { return { 0 }; }
+		constexpr iterator end() const { return { dim }; }
+	};
+
+	template <class S>
+	Indices indices(const Space<S>& s) { return { s.dim() }; }
+	template <class C, class SizeType = decltype(std::size(std::declval<C>()))>
+	Indices indices(const C& c) { return { int(c.size()) }; }
+
+
+	template <class First, class... Rest>
+	Indices indices(const First& first, const Rest&... rest)
+	{
+		auto result = indices(first);
+		(assert(result.size() == indices(rest).size()), ...);
+		return result;
+	}
+
+	template <class S> Indices indices(const Space<S>& sa, const Space<S>& sb) { assert(sa.dim() == sb.dim()); return { sa.dim() }; }
+
 	template <class S>
 	class Vector
 	{
 		S* _values;
 		Space<S>& _space;
 	public:
+		using value_type = S;
+		using size_type = int;
+		using iterator = S*;
+		using const_iterator = const S*;
+
+
 		Vector(S* values, Space<S>& space) noexcept : _values(values), _space(space) { }
 		~Vector() noexcept
 		{
@@ -25,16 +81,10 @@ namespace dvs
 		{
 			b._values = nullptr;
 		}
-		Vector(const Vector& b) noexcept : _values(b._space._alloc()), _space(b._space())
+		Vector(const Vector& b) noexcept : _values(b._space._alloc()), _space(b._space)
 		{
-			for (int i = 0; i < _space._dim; ++i)
+			for (auto i : indices(_space))
 				_values[i] = b[i];
-		}
-
-		int spaceCheck(const Vector& b) const noexcept
-		{
-			assert(&_space == &b._space);
-			return _space._dim;
 		}
 
 		Vector& operator=(Vector&& b) noexcept
@@ -52,7 +102,7 @@ namespace dvs
 		{
 			if (!_values)
 				_values = _space._alloc();
-			for (int i = 0, c = spaceCheck(b); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] = b[i];
 			return *this;
 		}
@@ -70,81 +120,81 @@ namespace dvs
 
 		Vector& operator+=(const Vector& b)
 		{
-			for (int i = 0, c = spaceCheck(c); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] += b[i];
 			return *this;
 		}
 		Vector& operator+=(S b)
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] += b;
 			return *this;
 		}
 		Vector& operator-=(const Vector& b)
 		{
-			for (int i = 0, c = spaceCheck(b); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] -= b[i];
 			return *this;
 		}
 		Vector& operator-=(S b)
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] -= b;
 			return *this;
 		}
 		Vector& operator*=(const Vector& b)
 		{
-			for (int i = 0, c = spaceCheck(b); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] *= b[i];
 			return *this;
 		}
 		Vector& operator*=(S b)
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] *= b;
 			return *this;
 		}
 		Vector& operator/=(const Vector& b)
 		{
-			for (int i = 0, c = spaceCheck(b); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] /= b[i];
 			return *this;
 		}
 		Vector& operator/=(S b)
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] /= b;
 			return *this;
 		}
 
 		Vector& negate(const Vector& b)
 		{
-			for (int i = 0, c = spaceCheck(b); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] = b[i] - _values[i];
 			return *this;
 		}
 		Vector& negate(S b)
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] = b - _values[i];
 			return *this;
 		}
 		Vector& negate()
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] = -_values[i];
 			return *this;
 		}
 
 		Vector& invert(const Vector& b)
 		{
-			for (int i = 0, c = spaceCheck(b); i < c; ++i)
+			for (auto i : indices(_space, b._space))
 				_values[i] = b[i] / _values[i];
 			return *this;
 		}
 		Vector& invert(S b)
 		{
-			for (int i = 0, c = size(); i < c; ++i)
+			for (auto i : indices(_space))
 				_values[i] = b / _values[i];
 			return *this;
 		}
@@ -247,12 +297,12 @@ namespace dvs
 			assert(sizeof(Free) <= sizeof(S)*_dim);
 			_zero_basis = reinterpret_cast<Vector*>(new char[sizeof(Vector)*(_dim + 1)]);
 			new (_zero_basis) Vector(_alloc(), *this);
-			for (int i = 0; i < _dim; ++i)
+			for (auto i : indices(*this))
 				_zero_basis[0][i] = S(0);
-			for (int k = 0; k < _dim; ++k)
+			for (auto k : indices(*this))
 			{
 				new (_zero_basis + k + 1) Vector(_alloc(), *this);
-				for (int i = 0; i < _dim; ++i)
+				for (auto i : indices(*this))
 					_zero_basis[k+1][i] = i == k ? S(1) : S(0);
 			}
 		}
@@ -273,6 +323,8 @@ namespace dvs
 		const Vector& zero() const { return _zero_basis[0]; }
 		const Vector& basis(int i) const { return _zero_basis[i + 1]; }
 
+		Vector operator()() { return { _alloc(), *this }; }
+
 		template <class... Components, class Enable = std::enable_if_t<sizeof...(Components) >= 2>>
 		Vector operator()(Components&&... c)
 		{
@@ -282,11 +334,20 @@ namespace dvs
 			((result[i++] = S(std::forward<Components>(c))), ...);
 			return result;
 		}
-		template <class T, class Enable = ifExpr<T>>
-		Vector operator()(const T& e)
+		template <class C, class IT = decltype(std::begin(std::declval<C>()))>
+		Vector operator()(C&& c)
 		{
-			assert(this == &e.space());
-			return { e };
+			Vector result(_alloc(), *this);
+			auto it = std::begin(c);
+			const auto end = std::end(c);
+			for (auto i : indices(*this))
+			{
+				assert(it != end);
+				result[i] = *it;
+				++it;
+			}
+			assert(!(it != end));
+			return result;
 		}
 
 		int dim() const { return _dim; }
@@ -331,11 +392,14 @@ namespace dvs
 	template <class S> Vector<S> operator/(const Vector<S>& a, S  b) { auto r = a; r /= b; return r; }
 	template <class S> Vector<S> operator/(S a, const Vector<S>&  b) { auto r = b; r.invert(b); return r; }
 
+	template <class S> S     sum(const Vector<S>& a) { S s = S(0); for (auto c : a) s += c; return s; }
+	template <class S> S product(const Vector<S>& a) { S s = S(1); for (auto c : a) s *= c; return s; }
+
 	template <class S>
-	auto dot(const Vector<S>& a, const Vector<S>& b) 
+	S dot(const Vector<S>& a, const Vector<S>& b) 
 	{
-		auto sp = a[0] * b[0];
-		for (int i = 1, c = a.spaceCheck(b); i < c; ++i)
+		S sp = S(0);
+		for (auto i : indices(a, b))
 			sp += a[i] * b[i];
 		return sp;
 	}
@@ -343,9 +407,9 @@ namespace dvs
 	template <class S> 
 	auto square(const Vector<S>& a)
 	{
-		auto ss = a[0] * a[0];
-		for (int i = 1, c = a.size(); i < c; ++i)
-			ss += a[i] * a[i];
+		S ss = S(0);
+		for (auto c : a)
+			ss += c*c;
 		return ss;
 	}
 
@@ -353,6 +417,11 @@ namespace dvs
 	S length(const Vector<S>& a)
 	{
 		return sqrt(square(a));
+	}
+	template <class S>
+	S distance(const Vector<S>& a, const Vector<S>& b)
+	{
+		return length(a - b);
 	}
 	
 	template <class S>
